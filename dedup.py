@@ -1,4 +1,5 @@
 import os
+import pickle
 from hashlib import md5
 
 DEFAULT_LIMIT = 5 * 1024 * 1024
@@ -20,9 +21,11 @@ class CollisionError(Exception):
 
 
 def dedup(dir):
-    hash_dict = {}
-    duplications = {}
+    hash_dict = dict()
+    duplications = dict()
+    dir_duplications = list()
     for subdir, _, files in os.walk(dir):
+        is_duplicating_dir = True
         for file in files:
             full_name = os.path.join(subdir, file)
             short_md5 = md5sum(full_name, limit=DEFAULT_LIMIT)
@@ -38,7 +41,15 @@ def dedup(dir):
                     duplications[short_md5] = [hash_dict[short_md5], full_name]
             else:
                 hash_dict[short_md5] = full_name
+                is_duplicating_dir = False
+        if is_duplicating_dir:
+            dir_duplications.append(subdir)
 
+    with open('hash_dict.pkl', 'wb') as p:
+        pickle.dump(hash_dict, p)
+    for d in dir_duplications:
+        print(d)
+    print('------')
     for _, value in duplications.items():
         print(value)
         print('\n')
